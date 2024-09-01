@@ -1,1 +1,1 @@
-# multithreading-testing-of-sorts
+# sorts_testing
