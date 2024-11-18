@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <ctime>
 #include <chrono>
 #include <fstream>
@@ -10,28 +10,27 @@
 #define TEST_LEN3 30000
 #define TEST_LEN4 50000
 #define FUNC_COUNT 4
-int count_main = 0;
-int count_side = 0;
-int memory = 0;
 using namespace std;
-void time_of_execution(void (*f) (int*, int), int* a, int n)
+
+int* test_mass = new(nothrow) int[50000];
+
+
+void BubbleSort(int n, int * main_counts, int * side_counts, int * durations, int & memory)
 {
-    cout << "                                                           обрабатывается потоком " << this_thread::get_id() << endl;
-    mutex mute_write;
-    auto start_time = chrono::high_resolution_clock::now();
-    f(a, n);
-    auto end_time = chrono::high_resolution_clock::now();
-    mute_write.lock();
-    cout << "Amount of memory - " << memory << " bites" << endl;
-    cout << "execution time in milliseconds " << n << " elemets: " << chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count() << endl;
-    cout << "Main operations amount - " << count_main << " Side operations amount - " << count_side << endl;
-    mute_write.unlock();
-}
-void BubbleSort(int* a, int n)
-{
-    count_side = count_main = 0;
+    int* A = new(nothrow) int[n];   
+    if (!A)
+    {
+        std::cout << "Ошибка выделения памяти\n";
+        return;
+    }
+    
+    int count_side = 0, count_main = 0;
     int i, j, x;
     memory = 3 * sizeof(int);
+    for ( i = 0; i < n; ++i)
+        A[i] = test_mass[i];
+    mutex first_thread;
+    auto start_time = chrono::high_resolution_clock::now();
     for (i = 1; i < n; i++)
     {
         count_side++;
@@ -39,23 +38,96 @@ void BubbleSort(int* a, int n)
         {
             count_main++;
             count_side++;
-            if (a[j - 1] > a[j])
+            if (A[j - 1] > A[j])
             {
-                x = a[j - 1];
-                a[j - 1] = a[j];
-                a[j] = x;
+                x = A[j - 1];
+                A[j - 1] = A[j];    
+                A[j] = x;
             }
         }
         count_side++;
     }
     count_side++;
+    auto end_time = chrono::high_resolution_clock::now();
+    main_counts[0] = count_main;
+    side_counts[0] = count_side;
+    durations[0] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+
+    
+    count_side = count_main = 0;
+    start_time = chrono::high_resolution_clock::now();
+    for (i = 1; i < n; i++)
+    {
+        count_side++;
+        for (j = n - 1; j >= i; j--)
+        {
+            count_main++;
+            count_side++;
+            if (A[j - 1] > A[j])
+            {
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
+            }
+        }
+        count_side++;
+    }
+    count_side++;
+    end_time = chrono::high_resolution_clock::now();
+    main_counts[1] = count_main;
+    side_counts[1] = count_side;
+    durations[1] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+
+    for (i = 0; i < n / 2; i++)
+    {
+        x = A[n - i - 1];
+        A[n - i - 1] = A[i];
+        A[i] = x;
+    }
+
+    
+    count_side = count_main = 0;
+    start_time = chrono::high_resolution_clock::now();
+    for (i = 1; i < n; i++)
+    {
+        count_side++;
+        for (j = n - 1; j >= i; j--)
+        {
+            count_main++;
+            count_side++;
+            if (A[j - 1] > A[j])
+            {
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
+            }
+        }
+        count_side++;
+    }
+    count_side++;
+    end_time = chrono::high_resolution_clock::now();
+    main_counts[2] = count_main;
+    side_counts[2] = count_side;
+    durations[2] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+    delete[] A;
 }
 
-void BubbleSort1(int* a, int n)
+void BubbleSort1(int n, int* main_counts, int* side_counts, int* durations, int& memory)
 {
-    count_side = count_main = 0;
+    int* A = new(nothrow) int[n];
+    if (!A)
+    {
+        std::cout << "Ошибка выделения памяти\n";
+        return;
+    }
+    
+    int count_side = 0, count_main = 0;
     int i, j, x, flag = 1;
-    memory = 4 * sizeof(int);
+    memory = 3 * sizeof(int);
+    for (i = 0; i < n; ++i)
+        A[i] = test_mass[i];
+    mutex first_thread;
+    auto start_time = chrono::high_resolution_clock::now();
     for (i = 1; flag; i++)
     {
         count_side++;
@@ -64,24 +136,103 @@ void BubbleSort1(int* a, int n)
         {
             count_side++;
             count_main++;
-            if (a[j - 1] > a[j])
+            if (A[j - 1] > A[j])
             {
-                x = a[j - 1];
-                a[j - 1] = a[j];
-                a[j] = x;
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
                 flag = 1; /*была перестановка, значит, еще не все*/
             }
         }
         count_side++;
     }
     count_side++;
+    auto end_time = chrono::high_resolution_clock::now();
+    main_counts[0] = count_main;
+    side_counts[0] = count_side;
+    durations[0] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+
+    
+    count_side = count_main = 0;
+    start_time = chrono::high_resolution_clock::now();
+    for (i = 1; flag; i++)
+    {
+        count_side++;
+        flag = 0; /*признак упорядоченной последовательности*/
+        for (j = n - 1; j >= i; j--)
+        {
+            count_side++;
+            count_main++;
+            if (A[j - 1] > A[j])
+            {
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
+                flag = 1; /*была перестановка, значит, еще не все*/
+            }
+        }
+        count_side++;
+    }
+    count_side++;
+    end_time = chrono::high_resolution_clock::now();
+    main_counts[1] = count_main;
+    side_counts[1] = count_side;
+    durations[1] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+
+    for (i = 0; i < n / 2; i++)
+    {
+        x = A[n - i - 1];
+        A[n - i - 1] = A[i];
+        A[i] = x;
+    }
+
+    
+    count_side = count_main = 0;
+    start_time = chrono::high_resolution_clock::now();
+    for (i = 1; flag; i++)
+    {
+        count_side++;
+        flag = 0; /*признак упорядоченной последовательности*/
+        for (j = n - 1; j >= i; j--)
+        {
+            count_side++;
+            count_main++;
+            if (A[j - 1] > A[j])
+            {
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
+                flag = 1; /*была перестановка, значит, еще не все*/
+            }
+        }
+        count_side++;
+    }
+    count_side++;
+    end_time = chrono::high_resolution_clock::now();
+    main_counts[2] = count_main;
+    side_counts[2] = count_side;
+    durations[2] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+    delete[] A;
 }
 
-void BubbleSort2(int* a, int n)
+void BubbleSort2(int n, int* main_counts, int* side_counts, int* durations, int& memory)
 {
-    count_side = count_main = 0;
-    int i = 1, j, x, k; /*i=1 - левая граница сравниваемых элементов*/
+    int* A = new(nothrow) int[n];
+    if (!A)
+    {
+        std::cout << "Ошибка выделения памяти\n";
+        return;
+    }
+    
+    int count_side = 0, count_main = 0;
+    int i = 1, j, x, k;
+    memory = 3 * sizeof(int);
+    for (i = 0; i < n; ++i)
+        A[i] = test_mass[i];
+    mutex first_thread;
+    auto start_time = chrono::high_resolution_clock::now();
     memory = 4 * sizeof(int);
+    i = 1;
     do
     {
         count_side++;
@@ -90,35 +241,114 @@ void BubbleSort2(int* a, int n)
         {
             count_side++;
             count_main++;
-            if (a[j - 1] > a[j])
+            if (A[j - 1] > A[j])
             {
-                x = a[j - 1];
-                a[j - 1] = a[j];
-                a[j] = x;
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
                 k = j; /*запоминаем место последнего обмена*/
             }
         }
         count_side++;
         i = k; /*запоминаем место последнего обмена как левую границу*/
     } while (k);
+    auto end_time = chrono::high_resolution_clock::now();
+    main_counts[0] = count_main;
+    side_counts[0] = count_side;
+    durations[0] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+    
+    count_side = count_main = 0;
+    start_time = chrono::high_resolution_clock::now();
+    i = 1;
+    do
+    {
+        count_side++;
+        k = 0; /*признак отсутствия обменов*/
+        for (j = n - 1; j >= i; j--)
+        {
+            count_side++;
+            count_main++;
+            if (A[j - 1] > A[j])
+            {
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
+                k = j; /*запоминаем место последнего обмена*/
+            }
+        }
+        count_side++;
+        i = k; /*запоминаем место последнего обмена как левую границу*/
+    } while (k);
+    end_time = chrono::high_resolution_clock::now();
+    main_counts[1] = count_main;
+    side_counts[1] = count_side;
+    durations[1] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+
+    for (i = 0; i < n / 2; i++)
+    {
+        x = A[n - i - 1];
+        A[n - i - 1] = A[i];
+        A[i] = x;
+    }
+
+    
+    count_side = count_main = 0;
+    start_time = chrono::high_resolution_clock::now();
+    i = 1;
+    do
+    {
+        count_side++;
+        k = 0; /*признак отсутствия обменов*/
+        for (j = n - 1; j >= i; j--)
+        {
+            count_side++;
+            count_main++;
+            if (A[j - 1] > A[j])
+            {
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
+                k = j; /*запоминаем место последнего обмена*/
+            }
+        }
+        count_side++;
+        i = k; /*запоминаем место последнего обмена как левую границу*/
+    } while (k);
+    end_time = chrono::high_resolution_clock::now();
+    main_counts[2] = count_main;
+    side_counts[2] = count_side;
+    durations[2] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+    delete[] A;
 }
 
-void ShakerSort(int* a, int n)
+void ShakerSort(int n, int* main_counts, int* side_counts, int* durations, int& memory)
 {
-    count_side = count_main = 0;
-    int j, k = n - 1, left = 1, right = n - 1, x;
+    int* A = new(nothrow) int[n];
+    if (!A)
+    {
+        std::cout << "Ошибка выделения памяти\n";
+        return;
+    }
+
+    int count_side = 0, count_main = 0;
+    int i = 1, j, x, k, left, right;
     memory = 5 * sizeof(int);
+    for (i = 0; i < n; ++i)
+        A[i] = test_mass[i];
+    mutex first_thread;
+    auto start_time = chrono::high_resolution_clock::now();
+    k = n - 1, left = 1, right = n - 1;
     do
     {
         for (j = right; j >= left; j--) /*сначала просматриваем справа налево*/
         {
             count_side++;
             count_main++;
-            if (a[j - 1] > a[j])
+            if (A[j - 1] > A[j])
             {
-                x = a[j - 1];
-                a[j - 1] = a[j];
-                a[j] = x;
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
                 k = j;
             }
         }
@@ -128,11 +358,11 @@ void ShakerSort(int* a, int n)
         {
             count_side++;
             count_main++;
-            if (a[j - 1] > a[j])
+            if (A[j - 1] > A[j])
             {
-                x = a[j - 1];
-                a[j - 1] = a[j];
-                a[j] = x;
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
                 k = j;
             }
         }
@@ -140,38 +370,127 @@ void ShakerSort(int* a, int n)
         right = k - 1;
         count_side++;
     } while (left <= right); /*и так до тех пор, пока есть что просматривать*/
+    auto end_time = chrono::high_resolution_clock::now();
+    main_counts[0] = count_main;
+    side_counts[0] = count_side;
+    durations[0] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+
+    
+    count_side = count_main = 0;
+    start_time = chrono::high_resolution_clock::now();
+    k = n - 1, left = 1, right = n - 1;
+    do
+    {
+        for (j = right; j >= left; j--) /*сначала просматриваем справа налево*/
+        {
+            count_side++;
+            count_main++;
+            if (A[j - 1] > A[j])
+            {
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
+                k = j;
+            }
+        }
+        count_side++;
+        left = k + 1;
+        for (j = left; j <= right; j++) /*а теперь просматриваем слева направо*/
+        {
+            count_side++;
+            count_main++;
+            if (A[j - 1] > A[j])
+            {
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
+                k = j;
+            }
+        }
+        count_side++;
+        right = k - 1;
+        count_side++;
+    } while (left <= right); /*и так до тех пор, пока есть что просматривать*/
+    end_time = chrono::high_resolution_clock::now();
+    main_counts[1] = count_main;
+    side_counts[1] = count_side;
+    durations[1] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+
+    for (i = 0; i < n / 2; i++)
+    {
+        x = A[n - i - 1];
+        A[n - i - 1] = A[i];
+        A[i] = x;
+    }
+
+    
+    count_side = count_main = 0;
+    start_time = chrono::high_resolution_clock::now();
+    k = n - 1, left = 1, right = n - 1;
+    do
+    {
+        for (j = right; j >= left; j--) /*сначала просматриваем справа налево*/
+        {
+            count_side++;
+            count_main++;
+            if (A[j - 1] > A[j])
+            {
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
+                k = j;
+            }
+        }
+        count_side++;
+        left = k + 1;
+        for (j = left; j <= right; j++) /*а теперь просматриваем слева направо*/
+        {
+            count_side++;
+            count_main++;
+            if (A[j - 1] > A[j])
+            {
+                x = A[j - 1];
+                A[j - 1] = A[j];
+                A[j] = x;
+                k = j;
+            }
+        }
+        count_side++;
+        right = k - 1;
+        count_side++;
+    } while (left <= right); /*и так до тех пор, пока есть что просматривать*/
+    end_time = chrono::high_resolution_clock::now();
+    main_counts[2] = count_main;
+    side_counts[2] = count_side;
+    durations[2] = chrono::duration_cast<chrono::milliseconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count();
+    delete[] A;
 }
 
-int receive_data(string name_file, int** test, int* length)
+int receive_data(string name_file, int* test, int length)
 {
     char c;
     int flag = 0, number = 0, i = 0, j = 0;
     ifstream in(name_file);
     if (!in.is_open())
     {
-        cout << "Ошибка открытия файла\n";
+        std::cout << "Ошибка открытия файла\n";
         return 0;
     }
-    for (i = 0; i < FUNC_COUNT; i++)
+    while ((c = in.get()))
     {
-        while ((c = in.get()))
+        if ((c >= '0' && c <= '9'))
         {
-            if ((c >= '0' && c <= '9'))
-            {
-                flag = 1;
-                number *= 10;
-                number += c - 48;
-            }
-            if (flag == 1 && !(c >= '0' && c <= '9'))
-            {
-                test[i][j++] = number;
-                if (j == length[i]) break;
-                number = 0;
-                flag = 0;
-            }
+            flag = 1;
+            number *= 10;
+            number += c - 48;
         }
-        j = 0;
-        number = 0;
+        if (flag == 1 && !(c >= '0' && c <= '9'))
+        {
+            test[j++] = number;
+            if (j == length) break;
+            number = 0;
+            flag = 0;
+        }
     }
     in.close();
     return 1;
@@ -184,7 +503,7 @@ int receive_repeatkeys(string name_file, int* test, int length, int count_keys)
     ifstream in(name_file);
     if (!in.is_open())
     {
-        cout << "Ошибка открытия файла\n";
+        std::cout << "Ошибка открытия файла\n";
         return 0;
     }
 
@@ -230,157 +549,55 @@ int receive_repeatkeys(string name_file, int* test, int length, int count_keys)
 int main()
 {
     setlocale(0, "rus");
-    thread threads[4];
+
+    int* main_count[FUNC_COUNT * 4];
+    for (int i = 0; i < FUNC_COUNT * 4; ++i)
+        main_count[i] = new int[3];
+    int* side_count[FUNC_COUNT * 4];
+    for (int i = 0; i < FUNC_COUNT * 4; ++i)
+        side_count[i] = new int[3];
+    int* durations[FUNC_COUNT * 4];
+    for (int i = 0; i < FUNC_COUNT * 4; ++i)
+        durations[i] = new int[3];
+    int memory[FUNC_COUNT];
+
+    if (!test_mass)
+    {
+        cout << "Ошибка выделения памяти\n";
+        return -1;
+    }
+    if (!receive_data("test_numbers.txt", test_mass, TEST_LEN4))/*считываем данные и одновременно проверяем на наличие
+                                                                                                    ошибок во время считывания*/
+    {
+        return -1;
+    }
     int count_keys[] = { 10, 100, 500, 1000 };
-    void (*sorts[FUNC_COUNT]) (int*, int) = { BubbleSort, BubbleSort1, BubbleSort2, ShakerSort };
+    void (*sorts[FUNC_COUNT]) (int, int*, int*, int*, int&) = { BubbleSort, BubbleSort1, BubbleSort2, ShakerSort };
     int test_mas_lengths[] = { TEST_LEN1, TEST_LEN2, TEST_LEN3, TEST_LEN4 };
+    string orderliness[] = { "Неупорядоченный массив", "Упорядоченный по возрастанию", "Упорядоченный по убьванию" };
     int i = 0, x, * test[FUNC_COUNT], z = 0;
-    string names_test[] = { "Сортировка пузырьком", "Сортировка пузырьком с фиксацией факта обмена",
-                        "Сортировка пузырьком с фиксацией места обмена", "Шейкерная сортировка" };
-    while (z < FUNC_COUNT)//выделяем память под массив массивов чисел
-    {
-        test[z] = new(nothrow) int[test_mas_lengths[z]];
-        if (test[z] == nullptr)
-        {
-            for (i = 0; i < z; i++)//если произощла ошибка выделения памяти - освобождаем ранее выделенную память
-            {
-                delete[] test[i];
-            }
-            cout << "Ошибка выделения памяти\n";
-            return -1;
-        }
-        z++;
-    }
-    if (!receive_data("test_numbers.txt", test, test_mas_lengths)) /*считываем данные и одновременно проверяем на наличие
-                                                                                                    ошибок во время считывания*/
-    {
-        return -1;
-    }
-    cout << names_test[0] << endl;
-    cout << "       неупорядоченный массив" << endl;
-    thread th1(time_of_execution, sorts[0], test[0], test_mas_lengths[0]);
-    thread th2(time_of_execution, sorts[0], test[1], test_mas_lengths[1]);
-    thread th3(time_of_execution, sorts[0], test[2], test_mas_lengths[2]);
-    thread th4(time_of_execution, sorts[0], test[3], test_mas_lengths[3]);
-    cout << endl;
-    cout << "       упорядоченный массив" << endl;
-    thread th5(time_of_execution, sorts[0], test[0], test_mas_lengths[0]);
-    thread th6(time_of_execution, sorts[0], test[1], test_mas_lengths[1]);
-    thread th7(time_of_execution, sorts[0], test[2], test_mas_lengths[2]);
-    thread th8(time_of_execution, sorts[0], test[3], test_mas_lengths[3]);
-    cout << endl;
-    for (int j{ 0 }; j < FUNC_COUNT; j++)
-        for (i = 0; i < test_mas_lengths[j] / 2; i++)
-        {
-            x = test[j][i];
-            test[j][i] = test[j][test_mas_lengths[j] - 1 - i];
-            test[j][test_mas_lengths[j] - 1 - i] = x;
-        }
-    cout << "       обратно упорядоченный массив" << endl;
-    thread th9(time_of_execution, sorts[0], test[0], test_mas_lengths[0]);
-    thread th10(time_of_execution, sorts[0], test[1], test_mas_lengths[1]);
-    thread th11(time_of_execution, sorts[0], test[2], test_mas_lengths[2]);
-    thread th12(time_of_execution, sorts[0], test[3], test_mas_lengths[3]);
-
+    string names_test[] = { "\n\n               Сортировка пузырьком", "\n\n                Сортировка пузырьком с фиксацией факта обмена",
+                        "\n\n               Сортировка пузырьком с фиксацией места обмена", "\n\n               Шейкерная сортировка" };
     
+    std::thread th1(sorts[0], test_mas_lengths[0], main_count[0], side_count[0], durations[0], ref(memory[0]));
+    std::thread th2(sorts[0], test_mas_lengths[1], main_count[1], side_count[1], durations[1], ref(memory[0]));
+    std::thread th3(sorts[0], test_mas_lengths[2], main_count[2], side_count[2], durations[2], ref(memory[0]));
+    std::thread th4(sorts[0], test_mas_lengths[3], main_count[3], side_count[3], durations[3], ref(memory[0]));
 
-    if (!receive_data("test_numbers.txt", test, test_mas_lengths)) /*считываем данные и одновременно проверяем на наличие
-                                                                                                    ошибок во время считывания*/
-    {
-        return -1;
-    }
-    cout << names_test[1] << endl;
-    cout << "       неупорядоченный массив" << endl;
-    thread th13(time_of_execution, sorts[1], test[0], test_mas_lengths[0]);
-    thread th14(time_of_execution, sorts[1], test[1], test_mas_lengths[1]);
-    thread th15(time_of_execution, sorts[1], test[2], test_mas_lengths[2]);
-    thread th16(time_of_execution, sorts[1], test[3], test_mas_lengths[3]);
-    cout << endl;
-    cout << "       упорядоченный массив" << endl;
-    thread th17(time_of_execution, sorts[1], test[0], test_mas_lengths[0]);
-    thread th18(time_of_execution, sorts[1], test[1], test_mas_lengths[1]);
-    thread th19(time_of_execution, sorts[1], test[2], test_mas_lengths[2]);
-    thread th20(time_of_execution, sorts[1], test[3], test_mas_lengths[3]);
-    cout << endl;
-    for (int j{ 0 }; j < FUNC_COUNT; j++)
-        for (i = 0; i < test_mas_lengths[j] / 2; i++)
-        {
-            x = test[j][i];
-            test[j][i] = test[j][test_mas_lengths[j] - 1 - i];
-            test[j][test_mas_lengths[j] - 1 - i] = x;
-        }
-    cout << "       обратно упорядоченный массив" << endl;
-    thread th21(time_of_execution, sorts[1], test[0], test_mas_lengths[0]);
-    thread th22(time_of_execution, sorts[1], test[1], test_mas_lengths[1]);
-    thread th23(time_of_execution, sorts[1], test[2], test_mas_lengths[2]);
-    thread th24(time_of_execution, sorts[1], test[3], test_mas_lengths[3]);
+    std::thread th5(sorts[1], test_mas_lengths[0], main_count[4], side_count[4], durations[4], ref(memory[1]));
+    std::thread th6(sorts[1], test_mas_lengths[1], main_count[5], side_count[5], durations[5], ref(memory[1]));
+    std::thread th7(sorts[1], test_mas_lengths[2], main_count[6], side_count[6], durations[6], ref(memory[1]));
+    std::thread th8(sorts[1], test_mas_lengths[3], main_count[7], side_count[7], durations[7], ref(memory[1]));
 
-    
+    std::thread th9(sorts[2], test_mas_lengths[0], main_count[8], side_count[8], durations[8], ref(memory[2]));
+    std::thread th10(sorts[2], test_mas_lengths[1], main_count[9], side_count[9], durations[9], ref(memory[2]));
+    std::thread th11(sorts[2], test_mas_lengths[2], main_count[10], side_count[10], durations[10], ref(memory[2]));
+    std::thread th12(sorts[2], test_mas_lengths[3], main_count[11], side_count[11], durations[11], ref(memory[2]));
 
-    if (!receive_data("test_numbers.txt", test, test_mas_lengths)) /*считываем данные и одновременно проверяем на наличие
-                                                                                                    ошибок во время считывания*/
-    {
-        return -1;
-    }
-    cout << names_test[2] << endl;
-    cout << "       неупорядоченный массив" << endl;
-    thread th25(time_of_execution, sorts[2], test[0], test_mas_lengths[0]);
-    thread th26(time_of_execution, sorts[2], test[1], test_mas_lengths[1]);
-    thread th27(time_of_execution, sorts[2], test[2], test_mas_lengths[2]);
-    thread th28(time_of_execution, sorts[2], test[3], test_mas_lengths[3]);
-    cout << endl;
-    cout << "       упорядоченный массив" << endl;
-    thread th29(time_of_execution, sorts[2], test[0], test_mas_lengths[0]);
-    thread th30(time_of_execution, sorts[2], test[1], test_mas_lengths[1]);
-    thread th31(time_of_execution, sorts[2], test[2], test_mas_lengths[2]);
-    thread th32(time_of_execution, sorts[2], test[3], test_mas_lengths[3]);
-    cout << endl;
-    for (int j{ 0 }; j < FUNC_COUNT; j++)
-        for (i = 0; i < test_mas_lengths[j] / 2; i++)
-        {
-            x = test[j][i];
-            test[j][i] = test[j][test_mas_lengths[j] - 1 - i];
-            test[j][test_mas_lengths[j] - 1 - i] = x;
-        }
-    cout << "       обратно упорядоченный массив" << endl;
-    thread th33(time_of_execution, sorts[2], test[0], test_mas_lengths[0]);
-    thread th34(time_of_execution, sorts[2], test[1], test_mas_lengths[1]);
-    thread th35(time_of_execution, sorts[2], test[2], test_mas_lengths[2]);
-    thread th36(time_of_execution, sorts[2], test[3], test_mas_lengths[3]);
-
-    
-
-    if (!receive_data("test_numbers.txt", test, test_mas_lengths)) /*считываем данные и одновременно проверяем на наличие
-                                                                                                    ошибок во время считывания*/
-    {
-        return -1;
-    }
-    cout << names_test[3] << endl;
-    cout << "       неупорядоченный массив" << endl;
-    thread th37(time_of_execution, sorts[3], test[0], test_mas_lengths[0]);
-    thread th38(time_of_execution, sorts[3], test[1], test_mas_lengths[1]);
-    thread th39(time_of_execution, sorts[3], test[2], test_mas_lengths[2]);
-    thread th40(time_of_execution, sorts[3], test[3], test_mas_lengths[3]);
-    cout << endl;
-    cout << "       упорядоченный массив" << endl;
-    thread th41(time_of_execution, sorts[3], test[0], test_mas_lengths[0]);
-    thread th42(time_of_execution, sorts[3], test[1], test_mas_lengths[1]);
-    thread th43(time_of_execution, sorts[3], test[2], test_mas_lengths[2]);
-    thread th44(time_of_execution, sorts[3], test[3], test_mas_lengths[3]);
-    cout << endl;
-    for (int j{ 0 }; j < FUNC_COUNT; j++)
-        for (i = 0; i < test_mas_lengths[j] / 2; i++)
-        {
-            x = test[j][i];
-            test[j][i] = test[j][test_mas_lengths[j] - 1 - i];
-            test[j][test_mas_lengths[j] - 1 - i] = x;
-        }
-    cout << "       обратно упорядоченный массив" << endl;
-    thread th45(time_of_execution, sorts[3], test[0], test_mas_lengths[0]);
-    thread th46(time_of_execution, sorts[3], test[1], test_mas_lengths[1]);
-    thread th47(time_of_execution, sorts[3], test[2], test_mas_lengths[2]);
-    thread th48(time_of_execution, sorts[3], test[3], test_mas_lengths[3]);
-
+    std::thread th13(sorts[3], test_mas_lengths[0], main_count[12], side_count[12], durations[12], ref(memory[3]));
+    std::thread th14(sorts[3], test_mas_lengths[1], main_count[13], side_count[13], durations[13], ref(memory[3]));
+    std::thread th15(sorts[3], test_mas_lengths[2], main_count[14], side_count[14], durations[14], ref(memory[3]));
+    std::thread th16(sorts[3], test_mas_lengths[3], main_count[15], side_count[15], durations[15], ref(memory[3]));
 
     th1.join();
     th2.join();
@@ -398,44 +615,30 @@ int main()
     th14.join();
     th15.join();
     th16.join();
-    th17.join();
-    th18.join();
-    th19.join();
-    th20.join();
-    th21.join();
-    th22.join();
-    th23.join();
-    th24.join();
-    th25.join();
-    th26.join();
-    th27.join();
-    th28.join();
-    th29.join();
-    th30.join();
-    th31.join();
-    th32.join();
-    th33.join();
-    th34.join();
-    th35.join();
-    th36.join();
-    th37.join();
-    th38.join();
-    th39.join();
-    th40.join();
-    th41.join();
-    th42.join();
-    th43.join();
-    th44.join();
-    th45.join();
-    th46.join();
-    th47.join();
-    th48.join();
 
-
-
-    for (z = 0; z < FUNC_COUNT; z++)//освобождаем память выделенную под тестовый массив массивов
+    for (int i = 0; i < FUNC_COUNT; ++i)
     {
-        delete[] test[z];
+        std::cout << names_test[i] << std::endl;
+        for (int j = 0; j < FUNC_COUNT; ++j)
+        {
+            std::cout << std::endl << std::endl << std::endl;
+            for (int z = 0; z < 3; ++z)
+            {
+                std::cout << std::endl;
+                std::cout << orderliness[z] << std::endl;
+                std::cout << "Amount of memory - " << memory[i] << " bites" << endl;
+                std::cout << "execution time in milliseconds " << test_mas_lengths[j] << " elemets: " << durations[i * 4 + j][z] << endl;
+                std::cout << "Main operations amount - " << main_count[i * 4 + j][z] << " Side operations amount - " << side_count[i * 4 + j][z] << endl;
+            }
+        }
     }
+
+    for (int i = 0; i < FUNC_COUNT * 4; ++i)
+        delete[] main_count[i];
+    for (int i = 0; i < FUNC_COUNT * 4; ++i)
+        delete[] side_count[i];
+    for (int i = 0; i < FUNC_COUNT * 4; ++i)
+        delete[] durations[i];
+    delete[] test_mass;
     return 0;
 }
